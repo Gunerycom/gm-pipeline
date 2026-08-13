@@ -41,12 +41,42 @@ class App {
     this.renderMobileNav();
     this.setupGlobalEvents();
     this.startCountdownTimer();
+    this.startLiveSyncPolling();
+  }
 
-    // Async Cloud Synchronization (Vercel Cloud Storage)
+  // --- Real-time Live Cloud Synchronization ---
+  startLiveSyncPolling() {
+    // Initial sync
     Storage.syncFromCloud(() => {
       this.renderWhatsNext();
       this.renderStats();
       this.renderView();
+    });
+
+    // Poll every 12 seconds for background changes made by other team members
+    setInterval(() => {
+      // Don't interrupt if user is actively recording audio
+      if (this.recorder && this.recorder.isRecording) return;
+      Storage.syncFromCloud(() => {
+        this.renderWhatsNext();
+        this.renderStats();
+        // Only update active board view if modal is not open
+        const modal = document.getElementById('video-modal');
+        if (!modal || !modal.classList.contains('open')) {
+          this.renderView();
+        }
+      });
+    }, 12000);
+
+    // Sync immediately whenever the user focuses back on the tab or unlocks their phone
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        Storage.syncFromCloud(() => {
+          this.renderWhatsNext();
+          this.renderStats();
+          this.renderView();
+        });
+      }
     });
   }
 
