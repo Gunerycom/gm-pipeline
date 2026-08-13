@@ -28,10 +28,19 @@ export default async function handler(req, res) {
       const filename = req.query.filename || `gm-take-${Date.now()}.webm`;
       const contentType = req.headers['content-type'] || 'audio/webm';
 
-      const blob = await put(`voiceovers/${filename}`, req, {
-        access: 'public',
-        contentType
-      });
+      let blob;
+      try {
+        blob = await put(`voiceovers/${filename}`, req, {
+          access: 'public',
+          contentType
+        });
+      } catch (accessErr) {
+        // Fallback if store is created with private access
+        blob = await put(`voiceovers/${filename}`, req, {
+          access: 'private',
+          contentType
+        });
+      }
 
       return res.status(200).json(blob);
     }

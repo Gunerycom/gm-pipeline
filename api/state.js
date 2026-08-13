@@ -45,11 +45,20 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const stateData = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
 
-      const blob = await put(STATE_FILE_PATH, stateData, {
-        access: 'public',
-        addRandomSuffix: false,
-        contentType: 'application/json'
-      });
+      let blob;
+      try {
+        blob = await put(STATE_FILE_PATH, stateData, {
+          access: 'public',
+          addRandomSuffix: false,
+          contentType: 'application/json'
+        });
+      } catch (err) {
+        blob = await put(STATE_FILE_PATH, stateData, {
+          access: 'private',
+          addRandomSuffix: false,
+          contentType: 'application/json'
+        });
+      }
 
       return res.status(200).json({ success: true, url: blob.url });
     }
