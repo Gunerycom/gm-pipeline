@@ -1149,10 +1149,10 @@
 }
 
 .modal-header {
-  padding: 1.15rem 1.5rem;
+  padding: 1.25rem 1.5rem 0.85rem 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   background: var(--bg-surface);
@@ -1161,7 +1161,7 @@
 .modal-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
   flex: 1;
   min-width: 0;
 }
@@ -1169,15 +1169,15 @@
 .modal-tag-row {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .modal-title {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1.25;
+  line-height: 1.3;
   word-break: break-word;
 }
 
@@ -1200,40 +1200,57 @@
   color: var(--text-primary);
 }
 
-/* Modal Tab Bar */
+/* Modern Segmented Pill Modal Tab Bar */
 .modal-tabs-nav {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0 1.5rem;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  margin: 0.85rem 1.5rem 0.25rem 1.5rem;
   background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.modal-tabs-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .modal-tab-btn {
-  padding: 0.75rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0.55rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--text-muted);
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .modal-tab-btn:hover {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .modal-tab-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .modal-tab-btn.active {
-  color: var(--gm-teal);
-  border-bottom-color: var(--gm-teal);
-  background: var(--bg-surface);
+  color: #ffffff;
+  background: var(--gm-teal);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.35);
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   overflow-y: auto;
   flex-grow: 1;
 }
