@@ -1,0 +1,166 @@
+/* ==========================================================================
+   GUNERY × GRUPO MÉDICO — MOBILE-FIRST APP STYLESHEET
+   Optimized for Dr. Mario's Smartphone Experience
+   ========================================================================== */
+
+/* Bottom Navigation Bar for Mobile */
+.mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-medium);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 900;
+  justify-content: space-around;
+  align-items: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@media (min-width: 900px) {
+  .mobile-bottom-nav {
+    display: none; /* Desktop uses top tab bar */
+  }
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  transition: color var(--transition-fast);
+  padding: 0.25rem;
+  position: relative;
+}
+
+.bottom-nav-item .nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform var(--transition-fast);
+}
+
+.bottom-nav-item.active {
+  color: var(--gm-teal);
+}
+
+.bottom-nav-item.active .nav-icon {
+  transform: translateY(-2px) scale(1.1);
+}
+
+.bottom-nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 3px;
+  background: var(--gm-teal);
+  border-radius: var(--radius-full);
+}
+
+/* Mobile Quick Floating Record Button (for Dr. Mario) */
+.mobile-prompter-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-danger);
+  color: #ffffff;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35);
+}
+
+/* Mobile Viewport Optimizations */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1.5rem 0.85rem 6.5rem 0.85rem;
+  }
+
+  .header-inner {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .brand-logo-gm {
+    height: 30px;
+  }
+
+  .brand-logo-gg {
+    height: 18px;
+  }
+
+  .brand-main-title {
+    font-size: 0.85rem;
+  }
+
+  .brand-sub-title {
+    display: none;
+  }
+
+  .views-toolbar .nav-tabs-group {
+    display: none; /* Mobile uses bottom navigation */
+  }
+
+  .views-toolbar {
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .filter-search-group {
+    max-width: 100%;
+  }
+
+  /* Bottom sheet modal behavior on mobile */
+  .modal-dialog {
+    max-height: 95vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-top: auto;
+    transform: translateY(100%);
+  }
+
+  .modal-overlay.open .modal-dialog {
+    transform: translateY(0);
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .prompter-viewport {
+    padding: 1.25rem 1rem;
+    min-height: 300px;
+    max-height: 380px;
+  }
+
+  .prompter-toolbar {
+    padding: 0.75rem 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .prompter-timer-badge {
+    font-size: 1.35rem;
+  }
+
+  /* Mobile timeline cards */
+  .timeline-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.85rem 0.65rem;
+  }
+}
