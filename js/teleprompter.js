@@ -7,7 +7,7 @@ export class TeleprompterEngine {
     this.currentTimeSec = 0;
     this.isPlaying = false;
     this.speed = 1.0;
-    this.fontSize = 28; // px
+    this.fontSize = (typeof window !== 'undefined' && window.innerWidth <= 768) ? 20 : 26;
     this.isMirrored = false;
     this.timerInterval = null;
     this.onTick = options.onTick || (() => {});

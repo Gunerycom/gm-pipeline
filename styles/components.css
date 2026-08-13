@@ -1161,24 +1161,30 @@
 .modal-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .modal-tag-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .modal-title {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-primary);
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .modal-close-btn {
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -1198,11 +1204,12 @@
 .modal-tabs-nav {
   display: flex;
   align-items: center;
+  gap: 0.35rem;
+  padding: 0 1.5rem;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-surface-subtle);
-  padding: 0 1.5rem;
-  gap: 0.5rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-tab-btn {
@@ -1451,6 +1458,46 @@
   transition: width 0.08s ease-out;
 }
 
+/* Font Size Stepper */
+.font-size-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.25rem;
+}
+
+.font-size-stepper button {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Compact Top Audio Takes Bar */
+.compact-takes-strip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-left: 3px solid var(--gm-teal);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.compact-takes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 /* Recorded Takes Section */
 .takes-vault-section {
   border-top: 1px solid var(--border-subtle);
@@ -1604,19 +1651,25 @@
   justify-content: space-between;
   gap: 0.5rem;
   font-size: 0.8rem;
+  flex-wrap: wrap;
 }
 
 .comment-author-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .comment-role-pill {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 0.15rem 0.45rem;
+  padding: 0.18rem 0.5rem;
   border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .comment-timecode-tag {

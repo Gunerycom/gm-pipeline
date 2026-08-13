@@ -699,10 +699,10 @@ class App {
 
     container.innerHTML = `
       <div class="prompter-studio-container">
-        <!-- Video Select Header -->
+        <!-- Video Select & Prompter Header Bar -->
         <div class="prompter-toolbar">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <select class="category-select" id="prompter-video-picker" style="font-weight: 700;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1;">
+            <select class="category-select" id="prompter-video-picker" style="font-weight: 700; max-width: 100%;">
               ${CAMPAIGN_DATA.videos.map(v => `
                 <option value="${v.id}" ${v.id === currentVideo.id ? 'selected' : ''}>
                   Video #${v.number}: ${v.topic[this.lang]} (${v.duration} min)
@@ -720,9 +720,13 @@ class App {
             <button type="button" class="btn btn-record" id="btn-prompter-record">
               ${t.startRecord}
             </button>
-            <button type="button" class="btn btn-secondary" id="btn-prompter-reset">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-prompter-reset">
               ${t.resetPrompter}
             </button>
+            <div class="font-size-stepper">
+              <button type="button" class="btn-xs btn-outline" id="btn-font-dec" title="Smaller font">A-</button>
+              <button type="button" class="btn-xs btn-outline" id="btn-font-inc" title="Larger font">A+</button>
+            </div>
           </div>
         </div>
 
@@ -734,22 +738,29 @@ class App {
           </div>
         </div>
 
+        <!-- Compact Top Audio Takes Bar (Immediately accessible without scrolling down) -->
+        ${takes.length > 0 ? `
+          <div class="compact-takes-strip">
+            <div class="compact-takes-header">
+              <span>🎙️ <strong>${t.takesSaved} (${takes.length})</strong></span>
+            </div>
+            <div class="takes-list" id="prompter-takes-list">
+              ${this.renderTakesListHTML(takes, currentVideo)}
+            </div>
+          </div>
+        ` : ''}
+
         <!-- Prompter Viewport -->
         <div class="prompter-viewport" id="prompter-viewport-hub">
           <!-- Script auto-rendered here -->
         </div>
-
-        <!-- Recorded Audio Takes Section -->
-        <div class="takes-vault-section">
-          <h4 class="takes-vault-title">🎙️ ${t.takesSaved} (${takes.length})</h4>
-          <div class="takes-list" id="prompter-takes-list">
-            ${this.renderTakesListHTML(takes, currentVideo)}
-          </div>
-        </div>
       </div>
     `;
 
-    // Init Prompter Engine
+    // Init Prompter Engine with mobile-responsive default font size
+    const isMobile = window.innerWidth <= 768;
+    this.prompterFontSize = isMobile ? 21 : 26;
+
     const prompterContainer = document.getElementById('prompter-viewport-hub');
     this.prompter = new TeleprompterEngine(prompterContainer, {
       onTick: (sec) => {
@@ -757,7 +768,18 @@ class App {
         if (display) display.textContent = VoiceoverRecorder.formatDuration(sec);
       }
     });
+    this.prompter.setFontSize(this.prompterFontSize);
     this.prompter.loadScript(currentVideo.script, this.lang);
+
+    // Font Stepper Events
+    document.getElementById('btn-font-dec')?.addEventListener('click', () => {
+      this.prompterFontSize = Math.max(16, this.prompterFontSize - 2);
+      this.prompter.setFontSize(this.prompterFontSize);
+    });
+    document.getElementById('btn-font-inc')?.addEventListener('click', () => {
+      this.prompterFontSize = Math.min(36, this.prompterFontSize + 2);
+      this.prompter.setFontSize(this.prompterFontSize);
+    });
 
     // Bind Controls
     document.getElementById('prompter-video-picker')?.addEventListener('change', (e) => {
@@ -1014,9 +1036,13 @@ class App {
               <button type="button" class="btn btn-record" id="modal-btn-record">
                 ${tPrompter.startRecord}
               </button>
-              <button type="button" class="btn btn-secondary" id="modal-btn-reset">
+              <button type="button" class="btn btn-secondary btn-sm" id="modal-btn-reset">
                 ${tPrompter.resetPrompter}
               </button>
+              <div class="font-size-stepper">
+                <button type="button" class="btn-xs btn-outline" id="modal-btn-font-dec" title="Smaller font">A-</button>
+                <button type="button" class="btn-xs btn-outline" id="modal-btn-font-inc" title="Larger font">A+</button>
+              </div>
             </div>
           </div>
 
@@ -1027,16 +1053,25 @@ class App {
             </div>
           </div>
 
-          <div class="prompter-viewport" id="modal-prompter-viewport"></div>
-
-          <div class="takes-vault-section">
-            <h4 class="takes-vault-title">🎙️ ${tPrompter.takesSaved} (${takes.length})</h4>
-            <div class="takes-list" id="modal-takes-list">
-              ${this.renderTakesListHTML(takes, video)}
+          <!-- Compact Top Audio Takes Bar (Right above viewport) -->
+          ${takes.length > 0 ? `
+            <div class="compact-takes-strip">
+              <div class="compact-takes-header">
+                <span>🎙️ <strong>${tPrompter.takesSaved} (${takes.length})</strong></span>
+              </div>
+              <div class="takes-list" id="modal-takes-list">
+                ${this.renderTakesListHTML(takes, video)}
+              </div>
             </div>
-          </div>
+          ` : ''}
+
+          <!-- Prompter Viewport -->
+          <div class="prompter-viewport" id="modal-prompter-viewport"></div>
         </div>
       `;
+
+      const isMobile = window.innerWidth <= 768;
+      this.prompterFontSize = isMobile ? 21 : 26;
 
       const prompterContainer = document.getElementById('modal-prompter-viewport');
       this.prompter = new TeleprompterEngine(prompterContainer, {
@@ -1045,7 +1080,17 @@ class App {
           if (display) display.textContent = VoiceoverRecorder.formatDuration(sec);
         }
       });
+      this.prompter.setFontSize(this.prompterFontSize);
       this.prompter.loadScript(video.script, this.lang);
+
+      document.getElementById('modal-btn-font-dec')?.addEventListener('click', () => {
+        this.prompterFontSize = Math.max(16, this.prompterFontSize - 2);
+        this.prompter.setFontSize(this.prompterFontSize);
+      });
+      document.getElementById('modal-btn-font-inc')?.addEventListener('click', () => {
+        this.prompterFontSize = Math.min(36, this.prompterFontSize + 2);
+        this.prompter.setFontSize(this.prompterFontSize);
+      });
 
       const recordBtn = document.getElementById('modal-btn-record');
       recordBtn?.addEventListener('click', async () => {
