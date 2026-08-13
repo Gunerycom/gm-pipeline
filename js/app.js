@@ -425,20 +425,25 @@ class App {
     const allTakes = await Storage.getAllAudioTakes();
     const allComments = Storage.getComments();
     const t = TRANSLATIONS[this.lang].pipeline;
+    this.collapsedStages = this.collapsedStages || {};
 
     let html = `<div class="kanban-board">`;
 
     stages.forEach(st => {
       const stageVideos = filteredVideos.filter(v => (statuses[v.id] || 'script_approved') === st.key);
+      const isCollapsed = !!this.collapsedStages[st.key];
 
       html += `
-        <div class="kanban-col" data-stage="${st.key}">
-          <div class="kanban-col-header">
+        <div class="kanban-col ${isCollapsed ? 'is-collapsed' : ''}" data-stage="${st.key}">
+          <div class="kanban-col-header" data-stage="${st.key}">
             <div class="kanban-col-title-wrap">
               <span class="col-stage-dot dot-${st.color}"></span>
               <span class="kanban-col-title">${st.title[this.lang]}</span>
             </div>
-            <span class="kanban-col-count">${stageVideos.length}</span>
+            <div class="kanban-col-header-actions">
+              <span class="kanban-col-count">${stageVideos.length}</span>
+              <span class="col-accordion-chevron">▾</span>
+            </div>
           </div>
           <div class="kanban-col-cards">
       `;
@@ -507,6 +512,16 @@ class App {
 
     html += `</div>`;
     container.innerHTML = html;
+
+    // Column Accordion Toggle
+    container.querySelectorAll('.kanban-col-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const col = header.closest('.kanban-col');
+        const stageKey = header.dataset.stage;
+        col.classList.toggle('is-collapsed');
+        this.collapsedStages[stageKey] = col.classList.contains('is-collapsed');
+      });
+    });
 
     // Drag and Drop implementation
     container.querySelectorAll('.video-card').forEach(card => {
