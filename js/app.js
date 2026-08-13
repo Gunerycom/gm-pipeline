@@ -41,6 +41,13 @@ class App {
     this.renderMobileNav();
     this.setupGlobalEvents();
     this.startCountdownTimer();
+
+    // Async Cloud Synchronization (Vercel Cloud Storage)
+    Storage.syncFromCloud(() => {
+      this.renderWhatsNext();
+      this.renderStats();
+      this.renderView();
+    });
   }
 
   // --- Theme & Language ---

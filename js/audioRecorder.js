@@ -161,6 +161,9 @@ export class VoiceoverRecorder {
   async saveCurrentTake(videoId, takeNumber, authorRole = 'client') {
     if (!this.currentTakeBlob) return null;
     const id = `take-${videoId}-${Date.now()}`;
+    const ext = this.currentTakeBlob.type.includes('mp4') ? 'm4a' : 'webm';
+    const filename = `gm_video_${String(videoId).padStart(2, '0')}_take_${takeNumber || 1}_${Date.now()}.${ext}`;
+
     const takeRecord = {
       id,
       videoId: Number(videoId),
@@ -169,9 +172,31 @@ export class VoiceoverRecorder {
       mimeType: this.currentTakeBlob.type,
       durationSec: this.currentDurationSec,
       timestamp: new Date().toISOString(),
-      authorRole
+      authorRole,
+      cloudUrl: null
     };
+
+    // Save locally first for instant access
     await Storage.saveAudioTake(takeRecord);
+
+    // Attempt background cloud upload to Vercel Blob
+    try {
+      const uploadRes = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': this.currentTakeBlob.type },
+        body: this.currentTakeBlob
+      });
+      if (uploadRes.ok) {
+        const blobData = await uploadRes.json();
+        if (blobData && blobData.url) {
+          takeRecord.cloudUrl = blobData.url;
+          await Storage.saveAudioTake(takeRecord);
+        }
+      }
+    } catch (e) {
+      console.warn('Vercel Blob upload skipped/offline:', e.message);
+    }
+
     return takeRecord;
   }
 
@@ -182,23 +207,28 @@ export class VoiceoverRecorder {
   }
 
   static downloadTake(take) {
-    const url = URL.createObjectURL(take.blob);
+    const url = take.blob ? URL.createObjectURL(take.blob) : take.cloudUrl;
+    if (!url) return;
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    const ext = take.mimeType.includes('mp4') ? 'm4a' : 'webm';
+    const ext = (take.mimeType && take.mimeType.includes('mp4')) ? 'm4a' : 'webm';
     a.download = `GM_Video_${String(take.videoId).padStart(2, '0')}_Toma_${take.takeNumber || 1}.${ext}`;
+    if (take.cloudUrl && !take.blob) {
+      a.target = '_blank';
+    }
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (take.blob) URL.revokeObjectURL(url);
     }, 1000);
   }
 
   static getWhatsAppShareUrl(video, take, lang = 'es', doctorName = 'Dr. Mario Pinilla') {
     const formattedDuration = VoiceoverRecorder.formatDuration(take.durationSec || 75);
     const isEs = lang === 'es';
+    const audioLinkLine = take.cloudUrl ? `\n🔗 *Audio Cloud Link:* ${take.cloudUrl}\n` : '';
 
     const message = isEs
       ? `🎙️ *Grabación de Voz en Off — Grupo Médico*\n\n` +
@@ -206,15 +236,20 @@ export class VoiceoverRecorder {
         `*Toma:* #${take.takeNumber || 1}\n` +
         `*Duración:* ${formattedDuration} / 1:15 min\n` +
         `*Grabado por:* ${doctorName}\n` +
-        `*Fecha:* ${new Date(take.timestamp).toLocaleDateString('es-CO')}\n\n` +
-        `¡Hola Gunery! Acabo de grabar la voz en off para este video. Por favor revísenla en el portal de producción o les comparto el archivo de audio.`
+        `*Fecha:* ${new Date(take.timestamp).toLocaleDateString('es-CO')}\n` +
+        audioLinkLine + `\n` +
+        `¡Hola Gunery! Acabo de grabar la voz en off para este video. Por favor revísenla en el portal de producción o descarguen el archivo.`
       : `🎙️ *Voiceover Recording — Grupo Médico*\n\n` +
         `*Video #${video.number}:* ${video.topic.en}\n` +
         `*Take:* #${take.takeNumber || 1}\n` +
         `*Duration:* ${formattedDuration} / 1:15 min\n` +
         `*Recorded by:* ${doctorName}\n` +
-        `*Date:* ${new Date(take.timestamp).toLocaleDateString('en-US')}\n\n` +
+        `*Date:* ${new Date(take.timestamp).toLocaleDateString('en-US')}\n` +
+        audioLinkLine + `\n` +
         `Hi Gunery! I just recorded the voiceover for this video. Please review it on the production portal or download the audio file.`;
+    
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+  }
     
     return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   }

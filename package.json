@@ -2,5 +2,8 @@
   "name": "gm-x-gunery-pipeline",
   "version": "1.0.0",
   "description": "Video Marketing Pipeline, Teleprompter & Production Portal for Grupo Médico & Gunery",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@vercel/blob": "^0.23.4"
+  }
 }

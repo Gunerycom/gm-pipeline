@@ -55,6 +55,50 @@ export const Storage = {
     localStorage.setItem(STORAGE_KEYS.ROLE, role);
   },
 
+  // Cloud Sync System (Vercel Cloud Storage)
+  async pushStateToCloud() {
+    try {
+      const payload = {
+        statuses: this.getVideoStatuses(),
+        approvals: this.getScriptApprovals(),
+        comments: this.getComments(),
+        updatedAt: new Date().toISOString()
+      };
+      await fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn('Cloud sync push offline/skipped:', e.message);
+    }
+  },
+
+  async syncFromCloud(onUpdatedCallback) {
+    try {
+      const res = await fetch('/api/state', { cache: 'no-store' });
+      if (res.ok) {
+        const remote = await res.json();
+        if (remote && remote.statuses) {
+          localStorage.setItem(STORAGE_KEYS.STATUSES, JSON.stringify(remote.statuses));
+          if (remote.approvals) {
+            localStorage.setItem(STORAGE_KEYS.APPROVALS, JSON.stringify(remote.approvals));
+          }
+          if (remote.comments && Array.isArray(remote.comments)) {
+            localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(remote.comments));
+          }
+          if (typeof onUpdatedCallback === 'function') {
+            onUpdatedCallback(remote);
+          }
+          return remote;
+        }
+      }
+    } catch (e) {
+      console.warn('Cloud sync fetch offline/skipped:', e.message);
+    }
+    return null;
+  },
+
   // Video Statuses
   getVideoStatuses() {
     const raw = localStorage.getItem(STORAGE_KEYS.STATUSES);
@@ -79,6 +123,7 @@ export const Storage = {
     const statuses = this.getVideoStatuses();
     statuses[videoId] = statusKey;
     localStorage.setItem(STORAGE_KEYS.STATUSES, JSON.stringify(statuses));
+    this.pushStateToCloud();
   },
 
   // Script Approvals
@@ -101,6 +146,7 @@ export const Storage = {
     const approvals = this.getScriptApprovals();
     approvals[videoId] = isApproved;
     localStorage.setItem(STORAGE_KEYS.APPROVALS, JSON.stringify(approvals));
+    this.pushStateToCloud();
   },
 
   // Comments & Discussions
@@ -117,6 +163,7 @@ export const Storage = {
   },
   saveComments(comments) {
     localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+    this.pushStateToCloud();
   },
   addComment(comment) {
     const comments = this.getComments();
@@ -144,7 +191,7 @@ export const Storage = {
     return comments;
   },
 
-  // IndexedDB Audio Vault
+  // IndexedDB Audio Vault (Local + Cloud Hybrid)
   async saveAudioTake(takeData) {
     const db = await openAudioDB();
     return new Promise((resolve, reject) => {
@@ -182,7 +229,10 @@ export const Storage = {
     });
   },
 
-  async deleteAudioTake(takeId) {
+  async deleteAudioTake(takeId, cloudUrl = null) {
+    if (cloudUrl) {
+      fetch(`/api/upload?url=${encodeURIComponent(cloudUrl)}`, { method: 'DELETE' }).catch(() => {});
+    }
     const db = await openAudioDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -202,5 +252,6 @@ export const Storage = {
     const db = await openAudioDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).clear();
+    this.pushStateToCloud();
   }
 };
