@@ -15,44 +15,95 @@ const DB_NAME = 'GM_GG_AudioVault';
 const DB_VERSION = 1;
 const STORE_NAME = 'takes';
 
-// Initialize IndexedDB
+// Safe LocalStorage memory fallback for Incognito/restricted browsers
+const memStorage = {};
+
+function safeGet(key) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const val = window.localStorage.getItem(key);
+      if (val !== null) return val;
+    }
+  } catch {
+    // Storage access denied / private browsing
+  }
+  return memStorage[key] || null;
+}
+
+function safeSet(key, val) {
+  memStorage[key] = String(val);
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, String(val));
+    }
+  } catch {
+    // Storage access denied / private browsing
+  }
+}
+
+function safeRemove(key) {
+  delete memStorage[key];
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Storage access denied / private browsing
+  }
+}
+
+// In-memory fallback for audio takes if IndexedDB is blocked
+let memTakes = [];
+
+// Initialize IndexedDB with safe catch
 function openAudioDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('videoId', 'videoId', { unique: false });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
+  return new Promise((resolve) => {
+    try {
+      if (typeof window === 'undefined' || !window.indexedDB) {
+        return resolve(null);
       }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+      const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (event) => {
+        try {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            store.createIndex('videoId', 'videoId', { unique: false });
+            store.createIndex('timestamp', 'timestamp', { unique: false });
+          }
+        } catch (e) {
+          console.warn('IndexedDB upgrade issue:', e);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
   });
 }
 
 export const Storage = {
   // Settings & UI state
   getLang() {
-    return localStorage.getItem(STORAGE_KEYS.LANG) || 'es';
+    return safeGet(STORAGE_KEYS.LANG) || 'es';
   },
   setLang(lang) {
-    localStorage.setItem(STORAGE_KEYS.LANG, lang);
+    safeSet(STORAGE_KEYS.LANG, lang);
   },
 
   getTheme() {
-    return localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
+    return safeGet(STORAGE_KEYS.THEME) || 'light';
   },
   setTheme(theme) {
-    localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    safeSet(STORAGE_KEYS.THEME, theme);
   },
 
   getRole() {
-    return localStorage.getItem(STORAGE_KEYS.ROLE) || 'client'; // default Dr. Mario
+    return safeGet(STORAGE_KEYS.ROLE) || 'client'; // default Dr. Mario
   },
   setRole(role) {
-    localStorage.setItem(STORAGE_KEYS.ROLE, role);
+    safeSet(STORAGE_KEYS.ROLE, role);
   },
 
   // Cloud Sync System (Vercel Cloud Storage)
@@ -80,12 +131,12 @@ export const Storage = {
       if (res.ok) {
         const remote = await res.json();
         if (remote && remote.statuses) {
-          localStorage.setItem(STORAGE_KEYS.STATUSES, JSON.stringify(remote.statuses));
+          safeSet(STORAGE_KEYS.STATUSES, JSON.stringify(remote.statuses));
           if (remote.approvals) {
-            localStorage.setItem(STORAGE_KEYS.APPROVALS, JSON.stringify(remote.approvals));
+            safeSet(STORAGE_KEYS.APPROVALS, JSON.stringify(remote.approvals));
           }
           if (remote.comments && Array.isArray(remote.comments)) {
-            localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(remote.comments));
+            safeSet(STORAGE_KEYS.COMMENTS, JSON.stringify(remote.comments));
           }
           if (typeof onUpdatedCallback === 'function') {
             onUpdatedCallback(remote);
@@ -101,7 +152,7 @@ export const Storage = {
 
   // Video Statuses
   getVideoStatuses() {
-    const raw = localStorage.getItem(STORAGE_KEYS.STATUSES);
+    const raw = safeGet(STORAGE_KEYS.STATUSES);
     if (!raw) {
       const defaults = {};
       CAMPAIGN_DATA.videos.forEach(v => {
@@ -122,13 +173,13 @@ export const Storage = {
   setVideoStatus(videoId, statusKey) {
     const statuses = this.getVideoStatuses();
     statuses[videoId] = statusKey;
-    localStorage.setItem(STORAGE_KEYS.STATUSES, JSON.stringify(statuses));
+    safeSet(STORAGE_KEYS.STATUSES, JSON.stringify(statuses));
     this.pushStateToCloud();
   },
 
   // Script Approvals
   getScriptApprovals() {
-    const raw = localStorage.getItem(STORAGE_KEYS.APPROVALS);
+    const raw = safeGet(STORAGE_KEYS.APPROVALS);
     if (!raw) {
       const defaults = {};
       CAMPAIGN_DATA.videos.forEach(v => {
@@ -145,13 +196,13 @@ export const Storage = {
   setScriptApproval(videoId, isApproved) {
     const approvals = this.getScriptApprovals();
     approvals[videoId] = isApproved;
-    localStorage.setItem(STORAGE_KEYS.APPROVALS, JSON.stringify(approvals));
+    safeSet(STORAGE_KEYS.APPROVALS, JSON.stringify(approvals));
     this.pushStateToCloud();
   },
 
   // Comments & Discussions
   getComments() {
-    const raw = localStorage.getItem(STORAGE_KEYS.COMMENTS);
+    const raw = safeGet(STORAGE_KEYS.COMMENTS);
     if (!raw) {
       return [...CAMPAIGN_DATA.initialComments];
     }
@@ -162,7 +213,7 @@ export const Storage = {
     }
   },
   saveComments(comments) {
-    localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+    safeSet(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
     this.pushStateToCloud();
   },
   addComment(comment) {
@@ -193,65 +244,124 @@ export const Storage = {
 
   // IndexedDB Audio Vault (Local + Cloud Hybrid)
   async saveAudioTake(takeData) {
-    const db = await openAudioDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.put(takeData);
-      req.onsuccess = () => resolve(takeData);
-      req.onerror = () => reject(req.error);
-    });
+    try {
+      const db = await openAudioDB();
+      if (!db) {
+        memTakes = memTakes.filter(t => t.id !== takeData.id);
+        memTakes.push(takeData);
+        return takeData;
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(takeData);
+          req.onsuccess = () => resolve(takeData);
+          req.onerror = () => {
+            memTakes.push(takeData);
+            resolve(takeData);
+          };
+        } catch {
+          memTakes.push(takeData);
+          resolve(takeData);
+        }
+      });
+    } catch {
+      memTakes.push(takeData);
+      return takeData;
+    }
   },
 
   async getAudioTakesByVideo(videoId) {
-    const db = await openAudioDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const index = store.index('videoId');
-      const req = index.getAll(videoId);
-      req.onsuccess = () => {
-        const sorted = (req.result || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        resolve(sorted);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    try {
+      const db = await openAudioDB();
+      if (!db) {
+        return memTakes.filter(t => t.videoId === Number(videoId)).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const index = store.index('videoId');
+          const req = index.getAll(Number(videoId));
+          req.onsuccess = () => {
+            const sorted = (req.result || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            resolve(sorted);
+          };
+          req.onerror = () => {
+            resolve(memTakes.filter(t => t.videoId === Number(videoId)));
+          };
+        } catch {
+          resolve(memTakes.filter(t => t.videoId === Number(videoId)));
+        }
+      });
+    } catch {
+      return memTakes.filter(t => t.videoId === Number(videoId));
+    }
   },
 
   async getAllAudioTakes() {
-    const db = await openAudioDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
+    try {
+      const db = await openAudioDB();
+      if (!db) {
+        return [...memTakes];
+      }
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => resolve([...memTakes]);
+        } catch {
+          resolve([...memTakes]);
+        }
+      });
+    } catch {
+      return [...memTakes];
+    }
   },
 
   async deleteAudioTake(takeId, cloudUrl = null) {
     if (cloudUrl) {
-      fetch(`/api/upload?url=${encodeURIComponent(cloudUrl)}`, { method: 'DELETE' }).catch(() => {});
+      try {
+        fetch(`/api/upload?url=${encodeURIComponent(cloudUrl)}`, { method: 'DELETE' }).catch(() => {});
+      } catch {}
     }
-    const db = await openAudioDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.delete(takeId);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
+    memTakes = memTakes.filter(t => t.id !== takeId);
+    try {
+      const db = await openAudioDB();
+      if (!db) return true;
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.delete(takeId);
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => resolve(true);
+        } catch {
+          resolve(true);
+        }
+      });
+    } catch {
+      return true;
+    }
   },
 
   // Reset all state to defaults
   async resetAll() {
-    localStorage.removeItem(STORAGE_KEYS.STATUSES);
-    localStorage.removeItem(STORAGE_KEYS.APPROVALS);
-    localStorage.removeItem(STORAGE_KEYS.COMMENTS);
-    localStorage.removeItem(STORAGE_KEYS.NOTES);
-    const db = await openAudioDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).clear();
+    safeRemove(STORAGE_KEYS.STATUSES);
+    safeRemove(STORAGE_KEYS.APPROVALS);
+    safeRemove(STORAGE_KEYS.COMMENTS);
+    safeRemove(STORAGE_KEYS.NOTES);
+    memTakes = [];
+    try {
+      const db = await openAudioDB();
+      if (db) {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).clear();
+      }
+    } catch {}
     this.pushStateToCloud();
   }
 };

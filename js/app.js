@@ -1430,8 +1430,17 @@ class App {
   }
 }
 
-// Instantiate on DOM Ready
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new App();
-  window.app.init();
-});
+// Instantiate on DOM Ready or immediately if DOM is already parsed
+function bootApp() {
+  if (!window.app) {
+    window.app = new App();
+    window.app.init();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+  bootApp();
+}
+

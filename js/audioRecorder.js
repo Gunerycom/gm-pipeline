@@ -250,7 +250,5 @@ export class VoiceoverRecorder {
     
     return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   }
-    
-    return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-  }
 }
+
